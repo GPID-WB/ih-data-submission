@@ -26,11 +26,17 @@ authorized_emails <- c("dmahler@worldbank.org",
 
 ui <- fluidPage(
 
-    titlePanel("PIP Innovation Hub data submission"),
+    titlePanel(title = "PIP Innovation Hub data submission"),
 
     shinyFeedback::useShinyFeedback(),
 
-    textInput("user", "Please supply your email:")
+    textInput(inputId = "user",
+              label   = "Please supply your email:"),
+
+    fileInput(inputId     = "upload",
+              label       = "Upload dta file:",
+              buttonLabel = "Upload",
+              accept      = c(".dta")),
 )
 
 server <- function(input, output, session) {
@@ -48,15 +54,39 @@ server <- function(input, output, session) {
 
             if (valid_domain) {
                 if (email %in% authorized_emails) {
-                    shinyFeedback::showFeedbackSuccess("user", "Email authorized")
+                    shinyFeedback::showFeedbackSuccess("user",
+                                                       "Email authorized")
                 } else {
-                    shinyFeedback::showFeedbackDanger("user", "Email not authorized")
+                    shinyFeedback::showFeedbackDanger("user",
+                                                      "Email not authorized")
                 }
             } else {
                 shinyFeedback::hideFeedback("user")
             }
         } else {
             shinyFeedback::hideFeedback("user")
+        }
+    })
+
+
+    # get data() reactive
+    data <- reactive({
+
+        req(input$upload)
+
+        ext <- tools::file_ext(input$upload$name)
+        cols <- switch(ext,
+                       csv = vroom::vroom(input$upload$datapath, delim = ";"),
+                       tsv = vroom::vroom(input$upload$datapath, delim = "\t"),
+                       dta = haven::read_dta(input$upload$datapath),
+                       validate("Invalid file; Please upload a .csv or .tsv file")
+        ) |>
+            colnames()
+        if (!all(essential_vars %in% cols)) {
+            paste0(c("Not all required variables are present. The data should at least contain: ",
+                     paste0(essential_vars,
+                            collapse = ", ")),
+                   collapse = "")
         }
     })
 
