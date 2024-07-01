@@ -61,10 +61,10 @@ ui <- fluidPage(
     tableOutput("dta"),
 
     # 6) Upload json file
-    fileInput(inputId     = "upload_json",
-              label       = "Upload json metadata:",
+    fileInput(inputId     = "upload_meta",
+              label       = "Upload csv metadata:",
               buttonLabel = "Upload",
-              accept      = c(".json")),
+              accept      = c(".csv")),
 
 
     # 7) Display dta file
@@ -144,22 +144,41 @@ server <- function(input, output, session) {
 
     #------------------------------------
     # 4) Display metadata
+    # output$metadata <- renderTable({
+    #
+    #     req(input$upload_meta)
+    #
+    #     ext <- tools::file_ext(input$upload_json$name)
+    #     ls_json <- switch(ext,
+    #                       json = fromJSON(file = input$upload_meta$datapath),
+    #                       validate("Invalid file: Please upload a json file")
+    #     )
+    #     df <- data.frame(
+    #         title = ls_json$title,
+    #         #authors = ls_json$authors,
+    #         paper_publish_data = ls_json$paper_publish_data,
+    #         date_submitted = ls_json$date_submitted
+    #     )
+    #     df
+    #
+    # })
+
     output$metadata <- renderTable({
 
-        req(input$upload_json)
+        req(input$upload_meta)
 
-        ext <- tools::file_ext(input$upload_json$name)
-        ls_json <- switch(ext,
-                          json = fromJSON(file = input$upload_json$datapath),
-                          validate("Invalid file: Please upload a json file")
+        ext <- tools::file_ext(input$upload_meta$name)
+        df <- switch(ext,
+                     csv = readr::read_csv2(file = input$upload_meta$datapath),
+                     validate("Invalid file: Please upload a csv file")
         )
-        df <- data.frame(
-            title = ls_json$title,
-            #authors = ls_json$authors,
-            paper_publish_data = ls_json$paper_publish_data,
-            date_submitted = ls_json$date_submitted
-        )
-        df
+        # df <- data.frame(
+        #     title = ls_json$title,
+        #     #authors = ls_json$authors,
+        #     paper_publish_data = ls_json$paper_publish_data,
+        #     date_submitted = ls_json$date_submitted
+        # )
+        head(df, 1)
 
     })
 }
