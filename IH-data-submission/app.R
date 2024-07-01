@@ -12,6 +12,8 @@
 library(shiny)
 library(fastverse)
 library(shinyjs)
+library(RJSONIO)
+library(rjson)
 
 
 #-------------------------------------------------------------------------------
@@ -56,16 +58,17 @@ ui <- fluidPage(
               accept      = c(".dta")),
 
     # 5) Display dta file
-    tableOutput("head")
+    tableOutput("dta"),
+
+    # 6) Upload json file
+    fileInput(inputId     = "upload_json",
+              label       = "Upload json metadata:",
+              buttonLabel = "Upload",
+              accept      = c(".json")),
 
 
-    # numericInput("n",
-    #              "Rows of dta to display",
-    #              value = 5,
-    #              min   =  1,
-    #              step  = 1),
-
-
+    # 7) Display dta file
+    tableOutput("metadata"),
 
 
 
@@ -135,10 +138,30 @@ server <- function(input, output, session) {
 
     #------------------------------------
     # 3) Display dta file
-    output$head <- renderTable({
+    output$dta <- renderTable({
         head(dta(), 2) #input$n)
     })
 
+    #------------------------------------
+    # 4) Display metadata
+    output$metadata <- renderTable({
+
+        req(input$upload_json)
+
+        ext <- tools::file_ext(input$upload_json$name)
+        ls_json <- switch(ext,
+                          json = fromJSON(file = input$upload_json$datapath),
+                          validate("Invalid file: Please upload a json file")
+        )
+        df <- data.frame(
+            title = ls_json$title,
+            #authors = ls_json$authors,
+            paper_publish_data = ls_json$paper_publish_data,
+            date_submitted = ls_json$date_submitted
+        )
+        df
+
+    })
 }
 
 shinyApp(ui     = ui,
