@@ -22,7 +22,12 @@ authorized_emails <- c("dmahler@worldbank.org",
                        "espen.prydz@gmail.com",
                        "snakamura2@worldbank.org",
                        "zprinsloo@worldbank.org")
-
+essential_vars <- c("code",
+                    "region_code",
+                    "reporting_level",
+                    "welfare_type",
+                    "poverty_line",
+                    "headcount")
 
 ui <- fluidPage(
 
@@ -70,16 +75,16 @@ server <- function(input, output, session) {
 
 
     # get data() reactive
-    data <- reactive({
+    dta <- reactive({
 
-        req(input$upload)
+        req(input$upload_dta)
 
         ext <- tools::file_ext(input$upload$name)
         cols <- switch(ext,
-                       csv = vroom::vroom(input$upload$datapath, delim = ";"),
-                       tsv = vroom::vroom(input$upload$datapath, delim = "\t"),
-                       dta = haven::read_dta(input$upload$datapath),
-                       validate("Invalid file; Please upload a .csv or .tsv file")
+                       csv = vroom::vroom(input$upload_dta$datapath, delim = ";"),
+                       tsv = vroom::vroom(input$upload_dta$datapath, delim = "\t"),
+                       dta = haven::read_dta(input$upload_dta$datapath),
+                       validate("Invalid file: Please upload a .dta file")
         ) |>
             colnames()
         if (!all(essential_vars %in% cols)) {
