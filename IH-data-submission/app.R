@@ -7,15 +7,14 @@
 #    http://shiny.rstudio.com/
 #
 
+#-------------------------------------------------------------------------------
+# Load packages
 library(shiny)
 library(fastverse)
 library(shinyjs)
 
 
-
-
-
-
+#-------------------------------------------------------------------------------
 # define objects
 authorized_emails <- c("dmahler@worldbank.org",
                        "stettehbaah@worldbank.org",
@@ -28,33 +27,66 @@ essential_vars <- c("code",
                     "welfare_type",
                     "poverty_line",
                     "headcount")
+dir <- "P:/04.GPID_team/PIP-innovation-hub"
+
+#-------------------------------------------------------------------------------
+# Some data
+#dt_sim_a <- haven::read_dta(file = fs::path(dir, "data-test"))
+
+#-------------------------------------------------------------------------------
+# UI
 
 ui <- fluidPage(
 
+
+    # 1) Title
     titlePanel(title = "PIP Innovation Hub data submission"),
 
+    # 2) Init feedback
     shinyFeedback::useShinyFeedback(),
 
+    # 3) User
     textInput(inputId = "user",
               label   = "Please supply your email:"),
 
-    fileInput(inputId     = "upload",
-              label       = "Upload dta file:",
+    # 4) Upload dta file
+    fileInput(inputId     = "upload_dta",
+              label       = "Upload dta data submission file:",
               buttonLabel = "Upload",
               accept      = c(".dta")),
+
+    # 5) Display dta file
+    tableOutput("head")
+
+
+    # numericInput("n",
+    #              "Rows of dta to display",
+    #              value = 5,
+    #              min   =  1,
+    #              step  = 1),
+
+
+
+
+
 )
 
+#-------------------------------------------------------------------------------
+# Server
 server <- function(input, output, session) {
 
-    # Debounce the email input to delay evaluation
+    # ----------------------------------
+    # 1) User
+
+    ## Debounce the email input to delay evaluation
     debounced_email <- debounce(reactive(input$user), 1000)
 
-    # Validate user
+    ##  Validate user
     observe({
         email <- debounced_email()
 
         if (email != "") {
-            # Check if email has a valid domain
+
             valid_domain <- grepl("@.*\\.(com|org)$", email)
 
             if (valid_domain) {
@@ -74,25 +106,37 @@ server <- function(input, output, session) {
     })
 
 
-    # get data() reactive
+    #------------------------------------
+    # 2) Upload dta file
     dta <- reactive({
 
         req(input$upload_dta)
 
-        ext <- tools::file_ext(input$upload$name)
-        cols <- switch(ext,
-                       csv = vroom::vroom(input$upload_dta$datapath, delim = ";"),
-                       tsv = vroom::vroom(input$upload_dta$datapath, delim = "\t"),
-                       dta = haven::read_dta(input$upload_dta$datapath),
-                       validate("Invalid file: Please upload a .dta file")
-        ) |>
+        ext <- tools::file_ext(input$upload_dta$name)
+        df_dta <- switch(ext,
+                         csv = vroom::vroom(input$upload_dta$datapath,
+                                            delim = ";"),
+                         tsv = vroom::vroom(input$upload_dta$datapath,
+                                            delim = "\t"),
+                         dta = haven::read_dta(input$upload_dta$datapath),
+                         validate("Invalid file: Please upload a .dta file")
+        )
+        cols <- df_dta |>
             colnames()
         if (!all(essential_vars %in% cols)) {
             paste0(c("Not all required variables are present. The data should at least contain: ",
                      paste0(essential_vars,
                             collapse = ", ")),
                    collapse = "")
+        } else {
+            df_dta
         }
+    })
+
+    #------------------------------------
+    # 3) Display dta file
+    output$head <- renderTable({
+        head(dta(), 2) #input$n)
     })
 
 }
