@@ -67,6 +67,10 @@ ui <- fluidPage(
               buttonLabel = "Upload",
               accept      = c(".xlsx")),
 
+    # method text book
+    textAreaInput("method",
+                  "Paste at most 3 paragraphs on the methodology:",
+                  rows = 3),
 
     # 7) Display dta file
     tableOutput("metadata"),
@@ -133,6 +137,16 @@ server <- function(input, output, session) {
                             collapse = ", ")),
                    collapse = "")
         } else {
+            dir <- "C:/Users/wb612474/OneDrive - WBG/pip_technical_work/ih-data-submission"
+            usr <- gsub("@worldbank.org",
+                        replacement = "",
+                        x = input$user)
+            haven::write_dta(df_dta,
+                             fs::path(dir,
+                                      paste0(usr,
+                                             "_",
+                                             Sys.Date(),
+                                             ".dta") ))
             df_dta
         }
     })
