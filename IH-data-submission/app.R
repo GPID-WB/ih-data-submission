@@ -31,10 +31,9 @@ essential_vars <- c("code",
                     "headcount_default",
                     "headcount_estimate")
 dir <- "P:/04.GPID_team/PIP-innovation-hub"
+#dir <- "C:/Users/wb612474/OneDrive - WBG/pip_technical_work/ih-data-submission"
 
-#-------------------------------------------------------------------------------
-# Some data
-#dt_sim_a <- haven::read_dta(file = fs::path(dir, "data-test"))
+
 
 #-------------------------------------------------------------------------------
 # UI
@@ -67,14 +66,21 @@ ui <- fluidPage(
               buttonLabel = "Upload",
               accept      = c(".xlsx")),
 
-    # method text book
-    textAreaInput("method",
-                  "Paste at most 3 paragraphs on the methodology:",
-                  rows = 3),
+
 
     # 7) Display dta file
     tableOutput("metadata"),
 
+    # method text box
+    textAreaInput("upload_method",
+                  "Paste at most 3 paragraphs on the methodology:",
+                  rows = 3),
+
+    actionButton(inputId = "submit_method",
+                 label   = "Submit methodology"),
+
+    #tableOutput("method"),
+    #verbatimTextOutput("check")
 
 
 )
@@ -137,7 +143,7 @@ server <- function(input, output, session) {
                             collapse = ", ")),
                    collapse = "")
         } else {
-            dir <- "C:/Users/wb612474/OneDrive - WBG/pip_technical_work/ih-data-submission"
+
             usr <- gsub("@worldbank.org",
                         replacement = "",
                         x = input$user)
@@ -154,30 +160,12 @@ server <- function(input, output, session) {
     #------------------------------------
     # 3) Display dta file
     output$dta <- renderTable({
-        head(dta(), 2) #input$n)
+
+        head(dta(), 2)
     })
 
     #------------------------------------
     # 4) Display metadata
-    # output$metadata <- renderTable({
-    #
-    #     req(input$upload_meta)
-    #
-    #     ext <- tools::file_ext(input$upload_json$name)
-    #     ls_json <- switch(ext,
-    #                       json = fromJSON(file = input$upload_meta$datapath),
-    #                       validate("Invalid file: Please upload a json file")
-    #     )
-    #     df <- data.frame(
-    #         title = ls_json$title,
-    #         #authors = ls_json$authors,
-    #         paper_publish_data = ls_json$paper_publish_data,
-    #         date_submitted = ls_json$date_submitted
-    #     )
-    #     df
-    #
-    # })
-
     output$metadata <- renderTable({
 
         req(input$upload_meta)
@@ -187,9 +175,51 @@ server <- function(input, output, session) {
                      xlsx = readxl::read_excel(path = input$upload_meta$datapath),
                      validate("Invalid file: Please upload a xlsx file")
         )
+
+        usr <- gsub("@worldbank.org",
+                    replacement = "",
+                    x = input$user)
+        writexl::write_xlsx(x    = df,
+                            path = fs::path(dir,
+                                            paste0(usr,
+                                                   "_",
+                                                   Sys.Date(),
+                                                   ".xlsx") ))
+
         head(df, 1)
 
     })
+
+    #------------------------------------
+    # 4) Method save as md
+
+    rv <- reactiveValues(file_text = NULL)
+
+    observeEvent(input$submit_method, {
+
+        req(input$upload_method)
+        req(input$submit_method)
+
+
+        rmd_content <- paste0(input$upload_method)
+        rv$file_text <- as.character(rmd_content)
+        usr <- gsub("@worldbank.org",
+                    replacement = "",
+                    x = input$user)
+
+        rcon <- file(fs::path(dir,
+                              paste0(usr,
+                                     "_",
+                                     Sys.Date(),
+                                     ".md")),
+                     "w") # Create Rmarkdown file
+        cat(rmd_content,
+            file = rcon) # Write your content to Rmarkdown file
+        close(rcon)
+
+
+    })
+
 }
 
 shinyApp(ui     = ui,
