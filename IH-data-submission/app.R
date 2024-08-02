@@ -28,7 +28,8 @@ essential_vars <- c("code",
                     "reporting_level",
                     "welfare_type",
                     "poverty_line",
-                    "headcount")
+                    "headcount_default",
+                    "headcount_estimate")
 dir <- "P:/04.GPID_team/PIP-innovation-hub"
 
 #-------------------------------------------------------------------------------
@@ -62,9 +63,9 @@ ui <- fluidPage(
 
     # 6) Upload json file
     fileInput(inputId     = "upload_meta",
-              label       = "Upload csv metadata:",
+              label       = "Upload xlsx metadata:",
               buttonLabel = "Upload",
-              accept      = c(".csv")),
+              accept      = c(".xlsx")),
 
 
     # 7) Display dta file
@@ -169,15 +170,9 @@ server <- function(input, output, session) {
 
         ext <- tools::file_ext(input$upload_meta$name)
         df <- switch(ext,
-                     csv = readr::read_csv2(file = input$upload_meta$datapath),
-                     validate("Invalid file: Please upload a csv file")
+                     xlsx = readxl::read_excel(path = input$upload_meta$datapath),
+                     validate("Invalid file: Please upload a xlsx file")
         )
-        # df <- data.frame(
-        #     title = ls_json$title,
-        #     #authors = ls_json$authors,
-        #     paper_publish_data = ls_json$paper_publish_data,
-        #     date_submitted = ls_json$date_submitted
-        # )
         head(df, 1)
 
     })
